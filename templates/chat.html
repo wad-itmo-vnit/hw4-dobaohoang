@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-KyZXEAg3QhqLMpG8r+8fhAXLRk2vvoC2f3B09zVXn8CA5QIVfZOJ3BCsw2P0p/We" crossorigin="anonymous">
+    <title>Chat Room {{room_name}}</title>
+</head>
+<body>
+    <h1>This Is Chat Room {{room_name}}</h1>
+    <div>
+        <ul id='message-log'>
+
+        </ul>
+    </div>
+
+    <form action="" method="post">
+        <label for="input_message">Message</label>
+        <input type="text" name="message" id="input_message">
+        <br>
+        <button id='message-submit-btn'>Submit!</button>
+    </form>
+    
+</body>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-U1DAWAznBHeqEIlVSCgzq+c9gqGAJn5c/t99JyeKa9xxaYpSvHU5awsuZVVFIhvj" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.1.3/socket.io.min.js"></script>
+<script>
+    let data = {
+        username: '{{username}}',
+        room_name: '{{room_name}}'
+    };
+    const namespace = '/chat';
+    const submit_btn = document.getElementById('message-submit-btn');
+    const ws = io(location.protocol + '//' + document.domain + ':' + location.port + namespace,{
+        query: data
+    });
+
+    ws.on('connect', () => {
+        console.log('Connected to websocket');
+    });
+
+    ws.on('disconnect', () => {
+        console.log('Disconnected from websocket');
+    });
+
+    ws.on('server_message', (response) => {
+        let message_log = document.getElementById('message-log');
+        let message = document.createElement('li');
+        message.innerHTML = `${response.username}: ${response.message}`;
+        message_log.appendChild(message);
+    });
+
+    submit_btn.onclick = (event) => {
+        event.preventDefault();
+        let message = document.getElementById('input_message');
+        ws.emit('client_message', {
+            message: message.value,
+        });
+        message.value = ''
+    }
+
+</script>
+</html>
