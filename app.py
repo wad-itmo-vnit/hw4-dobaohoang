@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, send_from_directory, redirect
 from flask.helpers import url_for
 from flask_socketio import Namespace, emit, SocketIO, join_room, leave_room, send
-import bot
+import bot, time
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'bimatvclluon'
@@ -69,19 +69,83 @@ class ChatNameSpace(Namespace):
 
 socketio.on_namespace(ChatNameSpace('/chat'))
 
-@app.route('/chat/', methods=['GET'])
+@app.route('/chat', methods=['GET'])
 def chat():
     username = request.args.get('username', '')
     room_name = request.args.get('room_name','')
+    method = request.args.get('method','')
 
-    return render_template('test.html', username=username, room_name=room_name)
+    return render_template('chat.html', username=username, room_name=room_name, method=method)
+
+@app.route('/chat/long', methods=['GET', 'POST'])
+def long_polling_chat():
+    username = request.args.get('username', '')
+    room_name = request.args.get('room_name','')
+    if request.method == 'GET':
+        username = request.args.get('username', '')
+        room_name = request.args.get('room_name','')
+        # first_time = request.args.get('first_time', '')
+        time.sleep(3)
+        data = []
+        # read data from database
+        with open('database.txt','r') as f:
+            while True:
+                line = f.readline().strip()
+                if not line:
+                    break
+                user, msg, room, timestamp = line.split(';')
+                if room == room_name:
+                    data.append({
+                        'username':user, 
+                        'message': msg,
+                        'timestamp': timestamp,
+                    })
+            f.close()
+        return {'messages': data}
+    elif request.method == 'POST':
+        username = request.form.get('username', '')
+        room_name = request.form.get('room_name', '')
+        message = request.form.get('message', '')
+        timestamp = request.form.get('timestamp', '')
+        save_to_database(username, room_name, message, timestamp)
+        return {'trang thai': 'ok'}
+
+@app.route('/chat/short', methods=['GET', 'POST'])
+def short_polling_chat():
+    if request.method == 'GET':
+        username = request.args.get('username', '')
+        room_name = request.args.get('room_name','')
+        data = []
+        # read data from database
+        with open('database.txt','r') as f:
+            while True:
+                line = f.readline().strip()
+                if not line:
+                    break
+                user, msg, room, timestamp = line.split(';')
+                if room == room_name:
+                    data.append({
+                        'username':user, 
+                        'message': msg,
+                        'timestamp': timestamp,
+                    })
+            f.close()
+        return {'messages': data}
+    elif request.method == 'POST':
+        username = request.form.get('username', '')
+        room_name = request.form.get('room_name', '')
+        message = request.form.get('message', '')
+        timestamp = request.form.get('timestamp', '')
+        save_to_database(username, room_name, message, timestamp)
+        return {'trang thai': 'ok'}
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
         username = request.form.get('username', '')
         room_name = request.form.get('room_name', '')
-        return redirect(url_for('chat', username=username, room_name=room_name))
+        method = request.form.get('method', '')
+        return redirect(url_for('chat', username=username, room_name=room_name, method=method))
 
     return render_template('index.html')
 

@@ -29,9 +29,9 @@ def answer(username, room_name, msg: str):
     timestamp = timestamp[:-2] + ':' + timestamp[-2:]
 
     bot_msg = ''
-    if msg.find('hello'):
+    if msg.lower().find('hello') != -1:
         bot_msg = f'Holle {username} :)'
-    elif msg.find('xin chào') != -1:
+    elif msg.lower().find('xin chào') != -1:
         bot_msg = f'Chào {username}'
 
     return {

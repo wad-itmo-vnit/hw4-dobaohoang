@@ -6,9 +6,8 @@ const message_input = document.getElementById('message_input');
 const message_log = document.getElementById('message_log');
 const home_btn = document.getElementById('home_btn');
 
-const ws = io(ws_url,{
-    query: data
-});
+room_name_disp.innerText = data.room_name;
+
 const getRelativeTime = (timestamp) => {
     if (timestamp.isBefore(moment().subtract(1, 'w'))){
         return timestamp.format('LT, L')
@@ -17,28 +16,34 @@ const getRelativeTime = (timestamp) => {
         return timestamp.fromNow()
     }
 };
-let message_count = 0
-action_menu_btn.onclick = () => {
-    let action_menu = document.querySelector('.action_menu')
-    action_menu.classList.toggle('show')
+
+async function send_data(data) {
+    // POST data to long_url (pre-defined in chat.html)
+    let formData = new URLSearchParams(data)
+    response = await fetch(long_url, {
+        method: 'POST',
+        body: formData
+    });
+    return response.json();
 };
 
-room_name_disp.innerText = data.room_name;
+async function get_data(info) {
+    // GET data from long_url (pre-defined in chat.html)
+    url_with_data = new URL(long_url);
+    url_with_data.search = new URLSearchParams(info);
+    response = await fetch(url_with_data)
+        .catch(err => {
+            console.log(err);
+            get_data(info);
+        });
+    return response.json();
+};
 
-ws.on('connect', () => {
-    console.log('Connected to websocket');
-});
-
-ws.on('disconnect', () => {
-    console.log('Disconnected from websocket');
-});
-
-ws.on('server_message', (response) => {
-    message_count += 1;
-    message_count_disp.innerText = message_count.toString() + ' Messages';
-    let username = response.username;
-    let message = response.message;
-    let timestamp = moment(response.timestamp);
+function createMessage(data) {
+    // Create and Add 1 message to messageLog
+    let username = data.username;
+    let message = data.message;
+    let timestamp = moment(data.timestamp);
     let message_disp = document.createElement('div');
     if (username == data.username) {
         message_disp.classList.add('d-flex','justify-content-end','mb-4')
@@ -58,7 +63,7 @@ ws.on('server_message', (response) => {
         `
     }
     else {
-        message_disp.classList.add('d-flex','justify-content-start','mb-4')
+        message_disp.classList.add('d-flex','justify-content-start','mb-4');
         message_disp.innerHTML = `
             <div class="img_cont_msg">
                 <img src="../images/user-default-img.jpg" class="rounded-circle user_img_msg">
@@ -72,24 +77,57 @@ ws.on('server_message', (response) => {
                 </div>
                 <span class="msg_time ml-3 mt-1">${getRelativeTime(timestamp)}</span>
             </div>
-        `
-    }
+        `;
+    };
     message_log.appendChild(message_disp);
     message_log.scrollTop = message_log.lastElementChild.offsetTop
-});
+};
 
 submit_btn.onclick = (event) => {
     event.preventDefault();
-    ws.emit('client_message', {
+    send_data({
+        username: data.username,
+        room_name: data.room_name,
         message: message_input.value,
         timestamp: moment().format()
     });
-    message_input.value = ''
-}
+    message_input.value = '';
+};
+
 message_input.onkeyup = (event) => {
     if (event.keyCode == 13)
-        submit_btn.click()
+        submit_btn.click();
 };
+
 home_btn.onclick = () => {
     window.location.href = "/";
+};
+
+// fetch data for specific (user,room) (data: pre-defined in chat.html)
+const chat_log = []
+function contains(chat_log, message) {
+    for (i in chat_log) {
+        if (JSON.stringify(chat_log[i]) === JSON.stringify(message))
+            return true
+    }
+    return false
 }
+
+async function get_long_data(data) {
+    await get_data(data)
+    .then(response => {
+        message_count_disp.innerText = response['messages'].length.toString() + ' Messages';
+        for (i in response['messages']){
+            let message = response['messages'][i]
+            if (!contains(chat_log, message)){
+                createMessage(message)
+                chat_log.push(message)
+            }
+        }
+    })
+    .then(get_long_data(data))
+}
+
+get_long_data(data)
+
+

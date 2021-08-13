@@ -27,9 +27,15 @@
             <div class="card-sm col-3 bg-light bg-gradient pt-2 rounded" style="max-width: 18rem;">
                 <img src="{{url_for('image_file', filename='chat-icons.jpg')}}" class="card-img-top" alt="icons">
                 <div class="card-body">
-                    <h5 class="card-title">Enter your Username and Chat room</h5>
+                    <h5 class="card-title">Enter your Infomations</h5>
                     <form method="post">
                         <div class="mb-3">
+                            <label for="inputMethod" class="form-label card-text">Choose Chat Method</label>
+                            <select id="inputMethod" class="form-select" name="method">
+                                <option value="ws" selected>WebSocket</option>
+                                <option value="long">Long Polling</option>
+                                <option value="short">Short Polling</option>
+                            </select>
                             <label for="inputUserName" class="form-label card-text">User Name</label>
                             <input type="text" class="form-control" id="inputUserName" name="username">
                             <label for="inputRoom" class="form-label card-text">Room Chat</label>
